@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -53,6 +55,12 @@ class MainActivity : ComponentActivity() {
 
             var overlayCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
+            val tooltipTexts = mapOf(
+                "home" to ("Home" to "ده الشاشة الرئيسية"),
+                "search" to ("Search" to "ابحث عن أي حاجة من هنا"),
+                "profile" to ("Profile" to "بياناتك الشخصية"),
+                "Top App" to ("Top App" to "ده التوب اب بار")
+            )
             TooltipLibraryTheme {
                 Box(modifier = Modifier.fillMaxSize()) {
 
@@ -65,6 +73,14 @@ class MainActivity : ComponentActivity() {
                     )
 
                     if (showOverlay) {
+                        val boundsOf: () -> Rect? = {
+                            val target = activeKey?.let { targets[it] }
+                            val overlay = overlayCoords
+                            if (target != null && overlay != null &&
+                                target.isAttached && overlay.isAttached
+                            ) overlay.localBoundingBoxOf(target) else null
+                        }
+
                         Canvas(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -85,6 +101,8 @@ class MainActivity : ComponentActivity() {
                             if (target != null && overlay != null &&
                                 target.isAttached && overlay.isAttached
                             ) {
+
+
                                 val bounds = overlay.localBoundingBoxOf(target)
                                 drawRoundRect(
                                     color = Color.Transparent,
@@ -93,8 +111,17 @@ class MainActivity : ComponentActivity() {
                                     cornerRadius = CornerRadius(16.dp.toPx()),
                                     blendMode = BlendMode.Clear
                                 )
+
+
                             }
                         }
+
+                        val (title, description) = tooltipTexts[activeKey] ?: ("" to "")
+                        SpotlightTooltip(
+                            targetBounds = boundsOf,
+                            title = title,
+                            description = description,
+                        )
                     }
                 }
             }
@@ -122,7 +149,11 @@ fun AppRoot(
         modifier = modifier.fillMaxSize(),
         topBar = {
             @OptIn(ExperimentalMaterial3Api::class)
-            TopAppBar(title = { Text("Spotlight Lab") })
+            TopAppBar(title = { Text("Spotlight Lab") }, modifier = Modifier.onGloballyPositioned {
+                onRegister("Top App", it)
+            }.clickable {
+                onSelect("Top App")
+            })
         },
         bottomBar = {
             NavigationBar {
